@@ -5,91 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Engineering Lecture Tracker</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-        }
-        .container {
-            width: 100%;
-            max-width: 800px;
-        }
-        h1 { color: #2c3e50; text-align: center; }
-        .course-card {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .course-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
-            gap: 10px;
-        }
-        .lecture {
-            height: 45px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #ecf0f1;
-            border: 2px solid #bdc3c7;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            user-select: none;
-        }
-        .lecture.completed {
-            background-color: #2ecc71;
-            border-color: #27ae60;
-            color: white;
-        }
-        .progress-container {
-            width: 100%;
-            background-color: #e0e0e0;
-            border-radius: 10px;
-            margin-top: 10px;
-        }
-        .progress-bar {
-            height: 10px;
-            background-color: #3498db;
-            border-radius: 10px;
-            width: 0%;
-            transition: width 0.5s ease;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { width: 100%; max-width: 800px; }
+        .course-card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .course-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 10px; }
+        .lecture { height: 45px; display: flex; align-items: center; justify-content: center; background-color: #ecf0f1; border: 2px solid #bdc3c7; border-radius: 4px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; }
+        .lecture.completed { background-color: #2ecc71; border-color: #27ae60; color: white; }
+        .progress-container { width: 100%; background-color: #e0e0e0; border-radius: 10px; margin-top: 15px; height: 10px; overflow: hidden; }
+        .progress-bar { height: 100%; background-color: #3498db; width: 0%; transition: width 0.4s ease; }
         .stats { font-weight: bold; color: #34495e; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Course Progress Tracker</h1>
+    <h1 style="text-align: center;">Course Progress Tracker</h1>
     <div id="dashboard"></div>
 </div>
 
 <script>
-    const courses = [
-        "Solid Mechanics I",
-        "Fluid Mechanics",
-        "Dynamics",
-        "Statistics",
-        "Computational Engineering"
-    ];
+    const courses = ["Solid Mechanics I", "Fluid Mechanics", "Dynamics", "Statistics", "Computational Engineering"];
     const totalLectures = 12;
 
     function init() {
         const dashboard = document.getElementById('dashboard');
-        
+        // Load saved data
+        const savedData = JSON.parse(localStorage.getItem('lectureProgress')) || {};
+
         courses.forEach(course => {
             const courseId = course.replace(/\s+/g, '');
             const card = document.createElement('div');
@@ -101,9 +44,7 @@
                     <span class="stats" id="stats-${courseId}">0% (0/${totalLectures})</span>
                 </div>
                 <div class="grid" id="grid-${courseId}"></div>
-                <div class="progress-container">
-                    <div class="progress-bar" id="bar-${courseId}"></div>
-                </div>
+                <div class="progress-container"><div class="progress-bar" id="bar-${courseId}"></div></div>
             `;
             
             dashboard.appendChild(card);
@@ -112,15 +53,29 @@
             for (let i = 1; i <= totalLectures; i++) {
                 const lec = document.createElement('div');
                 lec.className = 'lecture';
+                if (savedData[courseId] && savedData[courseId].includes(i)) lec.classList.add('completed');
                 lec.innerText = i;
-                lec.onclick = () => toggleLecture(courseId, lec);
+                lec.onclick = () => toggleLecture(courseId, i, lec);
                 grid.appendChild(lec);
             }
+            updateProgress(courseId);
         });
     }
 
-    function toggleLecture(courseId, element) {
+    function toggleLecture(courseId, num, element) {
         element.classList.toggle('completed');
+        
+        // Save to LocalStorage
+        const savedData = JSON.parse(localStorage.getItem('lectureProgress')) || {};
+        if (!savedData[courseId]) savedData[courseId] = [];
+        
+        if (element.classList.contains('completed')) {
+            savedData[courseId].push(num);
+        } else {
+            savedData[courseId] = savedData[courseId].filter(n => n !== num);
+        }
+        
+        localStorage.setItem('lectureProgress', JSON.stringify(savedData));
         updateProgress(courseId);
     }
 
@@ -128,13 +83,11 @@
         const grid = document.getElementById(`grid-${courseId}`);
         const completed = grid.querySelectorAll('.completed').length;
         const percentage = Math.round((completed / totalLectures) * 100);
-        
         document.getElementById(`stats-${courseId}`).innerText = `${percentage}% (${completed}/${totalLectures})`;
         document.getElementById(`bar-${courseId}`).style.width = `${percentage}%`;
     }
 
     init();
 </script>
-
 </body>
 </html>
